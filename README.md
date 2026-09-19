@@ -6,7 +6,7 @@ This is the local anime counterpart to the Aeon manhwa project. It keeps the cat
 
 [Open the Aeon Anime prototype on GitHub Pages](https://zerodox9000-eng.github.io/aeon-anime-prototype/)
 
-The site is published from this private repository by GitHub Actions. It is a playground for reviewing the catalogue and feed behavior, and is independent of the live manhwa app. A new deployment can take a minute or two after a push to `master`.
+The site is published from this repository by GitHub Actions. It is a playground for reviewing the catalogue and feed behavior, and is independent of the live manhwa app. A new deployment can take a minute or two after a push to `master`.
 
 ## Current snapshot
 

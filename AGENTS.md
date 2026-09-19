@@ -40,6 +40,6 @@ manhwa frontend and backend repositories.
 
 - Keep the prototype mobile-safe when frontend work begins.
 - `frontend/` is a local shell copied from the manhwa frontend and adapted to the local AniList export. It must remain separate from the pipeline under `scripts/` and `data/`. AniList MediaTag relevance ranks and category paths must not be translated into the manhwa tag-weight taxonomy.
-- Do not push or deploy without explicit user approval. The approved prototype deployment uses the separate private `aeon-anime-prototype` repository and the GitHub Pages workflow under `.github/workflows/`.
+- Do not push or deploy without explicit user approval. The approved prototype deployment uses the separate `aeon-anime-prototype` repository and the GitHub Pages workflow under `.github/workflows/`.
 - `frontend/vite.config.ts` uses `VITE_BASE_PATH` for the GitHub Pages subpath; local development keeps the root path when the variable is absent.
 - Inspect generated spreadsheets and visual artifacts before handing them off.
