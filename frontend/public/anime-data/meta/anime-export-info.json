@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-09-19T06:23:19.171Z",
+  "buildId": "v1-904b52ac5e1a0875",
+  "source": "AniList GraphQL API",
+  "sourceUrl": "https://graphql.anilist.co",
+  "summary": {
+    "rawRows": 11233,
+    "uniqueRows": 11228,
+    "duplicateRows": 5,
+    "rangesChecked": 5,
+    "unresolvedRangeCount": 0,
+    "missingEnglishTitles": 3790,
+    "hardBlGl": 1071,
+    "reviewBlGl": 0,
+    "adultRows": 1059,
+    "eligibleCount": 11228,
+    "rowsWithStats": 11228,
+    "blGlConfirmed": 0,
+    "blGlLikely": 174,
+    "blGlReview": 897,
+    "blGlStrictExclude": 102,
+    "blGlBroadExclude": 174,
+    "blGlNeedsReview": 1071,
+    "hentaiConfirmed": 1059,
+    "ecchiReview": 888,
+    "englishDubReported": 4568,
+    "englishDubPartial": 60,
+    "englishDubUnknownOrUnmapped": 6600,
+    "englishDubHighOrBetter": 4197
+  },
+  "filterMethod": {
+    "blGl": "The raw catalogue is never removed. Strict exclusion uses direct AniList BL/GL genres or a high-ranked explicit BL/GL tag with independent supporting evidence; broad exclusion includes medium-confidence likely rows for review. AniList tag rank is relevance, not a genre truth score, so an umbrella tag such as Yuri alone is not enough for automatic exclusion.",
+    "hentai": "AniList isAdult, Hentai genre, and direct adult tags are excluded; Ecchi remains a separate review signal."
+  },
+  "externalSources": {
+    "myDubList": {
+      "name": "MyDubList",
+      "repoUrl": "https://github.com/Joelis57/MyDubList",
+      "siteUrl": "https://mydublist.com",
+      "license": "CC BY 4.0",
+      "attribution": "Dub data © MyDubList - https://mydublist.com - (CC BY 4.0)",
+      "method": "AniList IDs were joined to all mapped MAL IDs, then checked against MyDubList English confidence and partial files.",
+      "caveat": "A missing MyDubList record means unknown coverage, not proof that no English dub exists."
+    }
+  },
+  "notes": {
+    "catalogue": "AniList GraphQL API",
+    "titlePolicy": "Use AniList English title when present; otherwise show AniList romanized/user-preferred title and flag the row in the audit data.",
+    "coverPolicy": "Use AniList Media.coverImage.extraLarge, with large/medium fallback. Feed accent colors use AniList Media.coverImage.color. Missing values remain null.",
+    "tagPolicy": "Use AniList genres plus AniList MediaTag IDs, categories, and per-title relevance ranks. Do not map AniList ranks into MangaBaka weight classes.",
+    "episodePolicy": "AniList episodes are stored in the shared total_chapters field for compatibility and displayed as Episodes in the anime shell.",
+    "historyPolicy": "One dated snapshot is included so the shared frontend contract can load; it is not a time-series history feed."
+  }
+}

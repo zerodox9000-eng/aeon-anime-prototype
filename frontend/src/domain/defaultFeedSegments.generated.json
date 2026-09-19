@@ -1,0 +1,308 @@
+[
+  {
+    "id": "f4da5512-aa3e-48bf-9f3d-a0afd14b8e56",
+    "name": "TRENDING",
+    "feedIds": [
+      "3557ab43-3ca8-4214-a4e8-fae07f1571b6",
+      "default-feed-5",
+      "default-feed-6",
+      "default-feed-7",
+      "default-feed-8"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-07-09T19:08:34.135Z",
+    "updatedAt": "2026-07-09T19:09:01.218Z"
+  },
+  {
+    "id": "2f19120b-0507-428d-9207-762d8726439e",
+    "name": "UPDATES",
+    "feedIds": [
+      "3511ae36-01bd-432b-9287-b1afdf85869a",
+      "5be53571-49c2-404f-8379-c7516fa6e979",
+      "b68dcc8b-3ca0-44a4-a474-dd91af2debe7"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-07-09T19:09:03.599Z",
+    "updatedAt": "2026-07-09T19:09:31.905Z"
+  },
+  {
+    "id": "f90877c1-e055-44a9-beaf-22f57345fcef",
+    "name": "DEMOGRAPHICS TRENDS",
+    "feedIds": [
+      "default-feed-13",
+      "default-feed-15",
+      "default-feed-14",
+      "default-feed-16"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-07-09T19:09:35.037Z",
+    "updatedAt": "2026-07-09T19:10:34.346Z"
+  },
+  {
+    "id": "603daa76-e824-4bb6-be96-06588debd39e",
+    "name": "DISCOVER",
+    "feedIds": [
+      "7e25d1e5-2781-431d-a2c3-24e46aa9dee4",
+      "6d7ccd05-d6b3-4ec5-8fa3-1306b79e28cc",
+      "b35b87f1-92e1-4c5d-a744-a252e83080c0",
+      "98baa3ee-b1ff-404a-9878-b834aa7ea95b",
+      "default-feed-12"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-07-09T19:11:34.924Z",
+    "updatedAt": "2026-07-09T19:12:05.834Z"
+  },
+  {
+    "id": "8e59f651-ff3e-4c02-8c41-0a5e93e359ae",
+    "name": "UNDERRATED",
+    "feedIds": [
+      "0c96761d-09d2-423a-a959-b2c3e451f739",
+      "99609e6f-9bd7-4d8c-9885-de48718fc051",
+      "2f13f7fc-37f4-4049-938a-538ebb4ecf7a",
+      "c456f0dd-adf8-4acc-8394-d2467ab5dcf8"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-07-09T19:12:21.289Z",
+    "updatedAt": "2026-07-09T19:12:46.287Z"
+  },
+  {
+    "id": "58de72e7-a56c-4c6a-9acc-3b7ac588551f",
+    "name": "RANKINGS",
+    "feedIds": [
+      "default-feed-1",
+      "default-feed-2",
+      "afe79c8e-8c5d-401b-a3b5-91ac87a28706",
+      "11765c56-471e-402d-9968-4b4a632b941d",
+      "3fccd0bf-0222-43d5-b33b-48cffec57657"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": true,
+    "createdAt": "2026-07-09T19:12:22.452Z",
+    "updatedAt": "2026-07-09T19:13:49.234Z"
+  },
+  {
+    "id": "d9eb80bc-3a5f-4d06-8bb0-cf2841f75625",
+    "name": "RISING",
+    "feedIds": [
+      "e4799e4f-ece2-4be6-8c32-b734be0a3027",
+      "default-feed-3",
+      "default-feed-4",
+      "f3079264-e31f-4f45-adf5-2832cd0ae864",
+      "21f450c5-8d68-4f68-85bf-444fc4e66a83"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": true,
+    "createdAt": "2026-07-09T19:10:42.522Z",
+    "updatedAt": "2026-07-09T19:13:41.401Z"
+  },
+  {
+    "id": "1adf71d3-8fe8-4c9c-b758-01226da09a63",
+    "name": "GROWTH",
+    "feedIds": [
+      "8516ca4b-7481-4b2e-aa19-5953e8951851",
+      "81420e4c-491c-49fb-a29f-357f01cbb5ed",
+      "f8a0b826-7a99-4616-8b24-79745c879e6c"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": true,
+    "createdAt": "2026-07-09T19:11:10.856Z",
+    "updatedAt": "2026-07-09T19:13:40.840Z"
+  },
+  {
+    "id": "2f90e87b-44b7-40ab-9fed-01d87241786d",
+    "library": "logic",
+    "name": "OEL",
+    "feedIds": [
+      "974b13cf-ae37-4f53-85c7-0519b323345d",
+      "bce583be-ebff-4d89-bff0-b29468604b83"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-05T13:09:57.096Z",
+    "updatedAt": "2026-08-08T23:01:44.415Z"
+  },
+  {
+    "id": "1c070ff0-0a91-4560-b9f7-cec880962c13",
+    "library": "logic",
+    "name": "NOVEL BASED",
+    "feedIds": [
+      "4405424f-771b-408a-8b3c-066ef725201c",
+      "1f54e482-f4f7-440c-b03c-c797f0f9d779"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-07-19T13:23:47.304Z",
+    "updatedAt": "2026-08-08T23:01:47.970Z"
+  },
+  {
+    "id": "4d9b8338-29eb-4a06-8949-d13ad3f19e2b",
+    "library": "logic",
+    "name": "CHARACTER TYPES",
+    "feedIds": [
+      "0a6cc89d-558d-42e7-8eb9-7033cb09ce03",
+      "b385ecab-85b9-461a-85b6-573450537fce",
+      "a9021b05-5b99-414a-a80c-b67f25bbb4ca",
+      "dab84dcd-f994-4faa-9ac7-48ecd56f8b93",
+      "09a55365-c7aa-41ff-88db-eb26b86aaf17"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T18:49:40.170Z",
+    "updatedAt": "2026-08-10T20:20:07.167Z"
+  },
+  {
+    "id": "950d6c3d-0164-4ccc-b405-1e570d88991f",
+    "library": "logic",
+    "name": "NARRATIVE TROPES",
+    "feedIds": [
+      "b7650fdd-f491-4c7d-af29-b04e378c6ced",
+      "2feb6d72-5f5a-480b-be77-01c90eaa72c6",
+      "75c9f2d6-5e12-47e0-b2a0-a65c3d1a9514",
+      "8958e3a1-ebe0-4456-bcff-214cd2ef8407",
+      "f8a890e5-efd0-412a-b00b-c27ec0ba8d63",
+      "80fb8694-d989-4e3b-a4c2-105a46a75571"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T18:35:59.893Z",
+    "updatedAt": "2026-08-10T20:24:10.629Z"
+  },
+  {
+    "id": "edff82e1-332d-41cb-83c7-59d069c39bec",
+    "library": "logic",
+    "name": "SETTINGS",
+    "feedIds": [
+      "c0283a03-68c4-49cf-a36c-8b4d1dbc16e7",
+      "c35e3761-f6c7-43fb-bd1c-1be25711576f",
+      "6b8d5e7a-9038-43a0-ad40-6afb72801425"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T19:03:10.504Z",
+    "updatedAt": "2026-08-10T19:47:16.846Z"
+  },
+  {
+    "id": "ef2778ad-4548-44a3-a8c3-4a4dca58c01b",
+    "library": "logic",
+    "name": "LOCATION",
+    "feedIds": [
+      "fdd5e4d8-5d92-4fea-b75c-c5d2a7833df7",
+      "3fd3520b-8010-4881-8d8a-15e0d2fb433f",
+      "40850369-5b83-42b2-9553-f8d78293e01b",
+      "ba034d49-9561-4133-982f-1ed14b6afb15"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T18:44:40.976Z",
+    "updatedAt": "2026-08-10T19:47:18.565Z"
+  },
+  {
+    "id": "cb4ee3cc-d8a5-4fd0-9713-c1432691291b",
+    "library": "logic",
+    "name": "GENRE COMBOS",
+    "feedIds": [
+      "7db7f39f-1fbb-4ca2-b6f1-23d416b4ac3c",
+      "7f8008cb-7f37-4dec-83e2-22259f59c413",
+      "32cfdba3-c5d4-42f3-8ba7-1be2ab0660bb",
+      "22919296-2ee4-4ea2-9766-29882a7b706a",
+      "77a6ee82-82e2-4e1b-bc42-c23ad48fde95",
+      "d33d661e-1260-4f5c-8c40-2f0d579b913f"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T18:36:09.685Z",
+    "updatedAt": "2026-08-10T19:15:26.472Z"
+  },
+  {
+    "id": "50ae704b-b926-4dba-8779-cc4d36f4bf53",
+    "library": "logic",
+    "name": "OCCUPATIONS",
+    "feedIds": [
+      "80c49ef3-4c39-4023-9f01-1dc56d12d77d",
+      "91ecb57e-e6a1-4318-b9f6-d6a9f3ce3d71",
+      "83ea0d45-ab9b-46cd-9fb5-ea6e595d60bd",
+      "93bbb86a-fbfd-4f47-bb6f-828a5a079ed8",
+      "b93fc1b3-648d-4fe9-abd0-072c2c2247d2",
+      "c8b9798f-d44f-45ff-b8d4-e499126736e0",
+      "af505a42-109d-434d-a7fa-afc1fdb9b0eb"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T19:05:24.432Z",
+    "updatedAt": "2026-08-10T20:19:12.055Z"
+  },
+  {
+    "id": "f3f55dfc-5c05-409a-94ef-5631caa09e09",
+    "library": "logic",
+    "name": "RELATIONSHIP",
+    "feedIds": [
+      "a024a2e8-99b6-4572-b712-c5a01ae4a65e",
+      "d70937a1-ebe7-4b9d-b596-bc85eb562c8d",
+      "13e079b6-8f65-4360-9dc0-38a8dd3acf73",
+      "304a63c7-c95a-4fb8-b6d1-453761904684",
+      "aafaa4c9-24a8-4fd5-b911-e0a6b7ebe2ba",
+      "38a7578e-7d0b-439c-98b2-0a20f9b7cd5f"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T18:36:04.196Z",
+    "updatedAt": "2026-08-10T19:40:36.734Z"
+  },
+  {
+    "id": "b6ce4d9f-992d-4090-8ba6-22a288e87282",
+    "library": "logic",
+    "name": "THEME",
+    "feedIds": [
+      "98f7103a-3398-4a79-9e95-3c528c1d6dd1",
+      "2f676bb9-a3ec-4e4b-a8f2-519352f4fc65",
+      "efbd1ef8-855e-470f-8fdd-414e95501d10",
+      "ed55060f-3803-4d91-933c-02c97d9af3a9",
+      "0f6509ca-f198-4038-a802-c18dcb256c0c",
+      "5f922245-f9ac-4444-944d-32d1e16694cd",
+      "fecf61f3-9973-4568-b3cd-80fed26b4be8",
+      "cbabe092-89aa-4cd7-9ac0-29c71ece80d6",
+      "b4041be2-a46e-41b6-9bbb-46e22defa5d5",
+      "cb34cdc3-6a5a-49c9-9634-9ff5e25e96f9",
+      "1d9b6756-ed44-4377-92b0-e4b9fe3e0d7d",
+      "b83ad947-0de8-4624-a1d0-341aa633d56f",
+      "c566fa8f-8a66-4556-ac17-d5278a7a5f32",
+      "17739543-7751-414f-90d9-0fdd532cab5f"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T18:35:50.719Z",
+    "updatedAt": "2026-08-10T20:03:30.988Z"
+  },
+  {
+    "id": "70c98c44-03d1-4e0b-b891-e0a41c0a48b8",
+    "library": "logic",
+    "name": "SPECIES & CREATURES",
+    "feedIds": [
+      "a8f88793-3c5b-4db2-851c-f97a12120f93",
+      "ecdf943a-0076-4020-a8cc-431cba1ac7e2",
+      "3c06d387-fbb2-495d-86aa-8fe88433a09a",
+      "f7694c84-4754-4cc7-9e33-82af70ea0c79",
+      "968bb4a9-02d4-4cf8-8a74-82340d52e4f0",
+      "1b94c408-df9e-4dfb-ae46-967c36be0edd",
+      "ee245001-049a-4ef6-a3cf-cdc13bfcfd84"
+    ],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-08-10T18:35:55.297Z",
+    "updatedAt": "2026-08-10T19:58:24.990Z"
+  },
+  {
+    "id": "unsegmented",
+    "name": "Unsegmented",
+    "feedIds": [],
+    "collapsed": true,
+    "hiddenFromHome": false,
+    "createdAt": "2026-07-09T19:04:46.328Z",
+    "updatedAt": "2026-07-09T19:13:16.699Z"
+  }
+]

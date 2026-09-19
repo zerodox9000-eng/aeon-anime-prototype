@@ -1,0 +1,1012 @@
+import { describe, expect, it } from "vitest";
+import { defaultMetricSlotsForFeed, DEFAULT_LATEST_LISTINGS_EXCLUDE_TAG_IDS, DEFAULT_SETTINGS, createCustomFeed, createFeed, metricSlotsToRestoreForFeed } from "./defaults";
+import { buildSensitiveTagGroups, feedUsesAniListOnlyParameters, isSearchVisible, runFeedQuery, sensitiveTagIdsForSearch, toggleFeedSourceModeForEditor } from "./query";
+import type { HistoryMap, SeriesCatalog, TagNode } from "./types";
+
+const tags: TagNode[] = [
+  { id: 1, name: "Action", path: "Genres > Action", is_genre: true, parent_id: null, level: 1 },
+  { id: 7, name: "Boys Love", path: "Themes > Relationship > Boys Love", is_genre: false, parent_id: null, level: 3 },
+  { id: 8, name: "School Boys Love", path: "Themes > Relationship > Boys Love > School Boys Love", is_genre: false, parent_id: 7, level: 4 },
+  { id: 2, name: "Hentai", path: "Sexual Content > Intensity > Hentai", is_genre: true, parent_id: null, level: 2 },
+  { id: 9, name: "Smut", path: "Sexual Content > Intensity > Smut", is_genre: true, parent_id: null, level: 2 },
+  { id: 10, name: "Girls Love", path: "Themes > Relationship > Girls Love", is_genre: true, parent_id: null, level: 2 },
+  { id: 3, name: "Fantasy", path: "Themes > Fantasy", is_genre: true, parent_id: null, level: 2 },
+  { id: 4, name: "Isekai", path: "Themes > Fantasy > Isekai", is_genre: false, parent_id: 3, level: 3 },
+  { id: 5, name: "Non-BL with Two Male Leads", path: "Themes > Relationship > Non-BL with Two Male Leads", is_genre: false, parent_id: null, level: 3 },
+  { id: 6, name: "Adult Comedy", path: "Sexual Content > Intensity > Hentai > Adult Comedy", is_genre: false, parent_id: 2, level: 3 },
+];
+
+const baseSeries: SeriesCatalog[] = [
+  {
+    id: 1,
+    display_title: "A Clean Action",
+    cover: null,
+    year: 2024,
+    status: "releasing",
+    content_rating: "safe",
+    total_chapters: "20",
+    tag_ids: [1],
+    stats: { popularity: 100, favourites: 10, meanScore: 80 },
+    analytics: { fanFavouriteRaw: 10, fanFavouriteDiscoveryScore: 90 },
+    published: { start_date: "2024-05-01", end_date: null },
+  },
+  {
+    id: 2,
+    display_title: "Sensitive Fantasy",
+    cover: null,
+    year: 2024,
+    status: "completed",
+    content_rating: "safe",
+    total_chapters: "40",
+    tag_ids: [2, 3],
+    stats: { popularity: 200, favourites: 20, meanScore: 70 },
+    analytics: { fanFavouriteRaw: 10, fanFavouriteDiscoveryScore: 80 },
+    published: { start_date: "2024-05-03", end_date: "2024-05-10" },
+  },
+  {
+    id: 3,
+    display_title: "No AniList",
+    cover: null,
+    year: 2024,
+    status: "completed",
+    content_rating: "safe",
+    total_chapters: "8",
+    tag_ids: [1],
+    stats: { popularity: null, favourites: null, meanScore: null },
+    analytics: {},
+    published: { start_date: "2024-05-04", end_date: "2024-05-11" },
+  },
+];
+
+const history: HistoryMap = {
+  "1": [
+    { d: "2024-05-01", p: 10, f: 1, s: 80, r: 10, rp: 1, pp: 1, ds: 20, dp: 1 },
+    { d: "2024-05-03", p: 20, f: 2, s: 80, r: 10, rp: 1, pp: 1, ds: 30, dp: 1 },
+    { d: "2024-05-10", p: 100, f: 10, s: 80, r: 10, rp: 1, pp: 1, ds: 90, dp: 1 },
+  ],
+  "2": [
+    { d: "2024-05-01", p: 190, f: 19, s: 70, r: 10, rp: 1, pp: 1, ds: 70, dp: 1 },
+    { d: "2024-05-03", p: 195, f: 19, s: 70, r: 10, rp: 1, pp: 1, ds: 75, dp: 1 },
+    { d: "2024-05-10", p: 200, f: 20, s: 70, r: 10, rp: 1, pp: 1, ds: 80, dp: 1 },
+  ],
+};
+
+const validTestCover = "https://cdn.mangabaka.dev/covers/valid.webp";
+
+describe("runFeedQuery", () => {
+  it("uses a source-compatible cover stat when a non-AniList feed has stats disabled", () => {
+    const feed = createFeed("Latest Listings");
+    feed.filters.sourceMode = "non-anilist";
+    feed.filters.sourceModes = ["non-anilist"];
+    feed.view.metricSlots = [];
+
+    feed.id = "b68dcc8b-3ca0-44a4-a474-dd91af2debe7";
+    expect(defaultMetricSlotsForFeed(feed)).toEqual(["year"]);
+
+    const releases = createFeed("New Releases");
+    releases.id = "3511ae36-01bd-432b-9287-b1afdf85869a";
+    releases.view.metricSlots = [];
+    expect(defaultMetricSlotsForFeed(releases)).toEqual(["releaseDate"]);
+
+    const oel = createFeed("OEL");
+    oel.id = "974b13cf-ae37-4f53-85c7-0519b323345d";
+    oel.filters.sourceMode = "oel";
+    oel.filters.sourceModes = ["oel"];
+    oel.view.metricSlots = [];
+    expect(defaultMetricSlotsForFeed(oel)).toEqual(["year"]);
+  });
+
+  it("restores a non-default feed's last cover stat after it was hidden", () => {
+    const feed = createFeed("Tagged non-AniList");
+    feed.filters.sourceMode = "non-anilist";
+    feed.filters.sourceModes = ["non-anilist"];
+    feed.view.metricSlots = [];
+    feed.view.metricSlotsWhenHidden = ["chapters"];
+
+    expect(metricSlotsToRestoreForFeed(feed)).toEqual(["chapters"]);
+
+    feed.view.metricSlotsWhenHidden = ["fanFavouriteDiscoveryPercentile"];
+    expect(metricSlotsToRestoreForFeed(feed)).toEqual(["year"]);
+  });
+
+  it("makes a newly selected OEL source immediately compatible", () => {
+    const feed = createFeed("OEL");
+    feed.filters.statuses = ["releasing"];
+    feed.filters.includeTagIds = [1];
+    feed.filters.minPopularity = 100;
+    feed.filters.metricRanges = [
+      { id: "pop", metric: "popularity", min: 10, max: null },
+      { id: "year", metric: "year", min: 2020, max: null },
+    ];
+
+    const compatible = toggleFeedSourceModeForEditor(feed, "oel");
+
+    expect(compatible.filters.sourceModes).toEqual(["anilist", "oel"]);
+    expect(compatible.filters.sourceMode).toBe("mixed");
+    expect(compatible.filters.statuses).toEqual(["releasing"]);
+    expect(compatible.filters.includeTagIds).toEqual([1]);
+    expect(compatible.filters.minPopularity).toBeNull();
+    expect(compatible.filters.metricRanges).toEqual([{ id: "year", metric: "year", min: 2020, max: null }]);
+    expect(compatible.sort).toEqual([{ id: feed.sort[0].id, metric: "mangabakaLatestRank", direction: "asc" }]);
+    expect(compatible.view.metricSlots).toEqual(["year"]);
+    expect(feedUsesAniListOnlyParameters(compatible)).toBe(false);
+  });
+
+  it("preserves compatible sorting and cover stats when adding Non-AniList", () => {
+    const feed = createFeed("Non-AniList");
+    feed.sort = [{ id: "year-sort", metric: "year", direction: "desc" }];
+    feed.view.metricSlots = ["year", "chapters", "popularity"];
+
+    const compatible = toggleFeedSourceModeForEditor(feed, "non-anilist");
+
+    expect(compatible.filters.sourceModes).toEqual(["anilist", "non-anilist"]);
+    expect(compatible.sort).toEqual(feed.sort);
+    expect(compatible.view.metricSlots).toEqual(["year", "chapters"]);
+  });
+
+  it("keeps fixed custom membership in manual order while applying status filters", () => {
+    const feed = createCustomFeed("Manual");
+    feed.orderMode = "manual";
+    feed.titleIds = [3, 1, 2];
+    const query = () => runFeedQuery({ feed, series: baseSeries, tags, history, labels: [], settings: DEFAULT_SETTINGS });
+    expect(query().items.map((item) => item.id)).toEqual([3, 1, 2]);
+    feed.filters.statuses = ["completed"];
+    expect(query().items.map((item) => item.id)).toEqual([3, 2]);
+  });
+
+  it("keeps custom membership visible when a saved id is now a merged id", () => {
+    const feed = createCustomFeed("Merged membership");
+    feed.orderMode = "manual";
+    feed.titleIds = [9001];
+    const merged = {
+      ...baseSeries[0],
+      id: 588985,
+      display_title: "Teto X Egen",
+      merged_ids: [588985, 9001],
+      source: { anilist: { id: 215080 } },
+    };
+
+    const result = runFeedQuery({
+      feed,
+      series: [merged],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+    });
+
+    expect(result.items.map((item) => item.id)).toEqual([588985]);
+  });
+
+  it("filters both logic and custom feeds to titles with an official English link", () => {
+    const series = [
+      { ...baseSeries[0], links: { read_en: "https://example.com/read" } },
+      { ...baseSeries[1], links: { read_en: null, read_en_all: ["https://example.com/second"] } },
+      { ...baseSeries[2], links: { read_en: null } },
+    ];
+    const logic = createFeed("Official English");
+    logic.filters.requireOfficialEnglishLink = true;
+    expect(runFeedQuery({ feed: logic, series, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([2, 1]);
+
+    const custom = createCustomFeed("Official English");
+    custom.titleIds = [3, 2, 1];
+    custom.filters.requireOfficialEnglishLink = true;
+    expect(runFeedQuery({ feed: custom, series, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([2, 1]);
+    expect(custom.titleIds).toEqual([3, 2, 1]);
+  });
+
+  it("uses positive MyDubList classifications for English dub-only feeds", () => {
+    const series = [
+      { ...baseSeries[0], english_dub: { status: "reported", confidence: "high", available: true } },
+      { ...baseSeries[1], english_dub: { status: "partial", confidence: "partial-only", available: true } },
+      { ...baseSeries[2], english_dub: { status: "not listed", confidence: "unknown", available: false } },
+      { ...baseSeries[0], id: 4, display_title: "Unmapped", english_dub: { status: "unmapped", confidence: "unknown", available: false } },
+    ];
+    const feed = createFeed("English dubs");
+    feed.filters.dubOnly = true;
+
+    expect(runFeedQuery({ feed, series, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([2, 1]);
+  });
+
+  it("allows multiple AniList formats while leaving every format visible when none are selected", () => {
+    const feed = createFeed("Format mix");
+    const series = [
+      { ...baseSeries[0], type: "TV" },
+      { ...baseSeries[1], type: "MOVIE" },
+      { ...baseSeries[2], type: "OVA", source: { anilist: { id: 3 } } },
+    ];
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["anilist", "non-anilist", "oel"];
+
+    expect(runFeedQuery({ feed, series, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([2, 1, 3]);
+
+    feed.filters.formats = ["MOVIE", "OVA"];
+    expect(runFeedQuery({ feed, series, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([2, 3]);
+  });
+
+  it("automatically sorts AniList members while pinning non-AniList titles", () => {
+    const feed = createCustomFeed("Automatic");
+    feed.titleIds = [1, 3, 2];
+    feed.orderMode = "automatic";
+    feed.nonAniListPlacement = "top";
+    feed.sort = [{ id: "pop", metric: "popularity", direction: "desc" }];
+    const result = runFeedQuery({ feed, series: baseSeries, tags, history, labels: [], settings: DEFAULT_SETTINGS });
+    expect(result.items.map((item) => item.id)).toEqual([3, 2, 1]);
+  });
+  it("treats no selected statuses as all and combines selected statuses with OR", () => {
+    const feed = createFeed("statuses");
+    const hiatusTitle = { ...baseSeries[0], id: 4, display_title: "Paused Action", status: "hiatus" };
+    const query = () => runFeedQuery({
+      feed,
+      series: [...baseSeries, hiatusTitle],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+
+    expect(query().items.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2, 4]));
+
+    feed.filters.statuses = ["completed", "hiatus"];
+    expect(query().items.map((item) => item.id)).toEqual(expect.arrayContaining([2, 4]));
+    expect(query().items.map((item) => item.id)).not.toContain(1);
+  });
+
+  it("hides default exact sensitive parent tags only while they are excluded", () => {
+    const feed = createFeed("safe");
+    feed.filters.excludeTagIds = [2];
+    const result = runFeedQuery({
+      feed,
+      series: baseSeries,
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([1]);
+  });
+
+  it("treats removed default sensitive exclusions as neutral when adult ratings are selected", () => {
+    const feed = createFeed("adult neutral tags");
+    feed.filters.contentRatings = ["safe", "suggestive", "erotica", "pornographic"];
+    feed.filters.excludeTagIds = [];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[1], id: 45, display_title: "Neutral Hentai tag", content_rating: "pornographic", tag_ids: [2] },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([45]);
+  });
+
+  it("filters selected tag rules by the enabled MangaBaka weight types", () => {
+    const feed = createFeed("weighted tags");
+    feed.filters.sourceModes = ["anilist"];
+    feed.filters.includeTagIds = [1];
+    feed.filters.excludeTagIds = [];
+    const weightedSeries = [
+      { ...baseSeries[0], id: 101, source: { anilist: { id: 101 } }, tag_weights: { 1: "core" } },
+      { ...baseSeries[0], id: 102, source: { anilist: { id: 102 } }, tag_weights: { 1: "incidental" } },
+      { ...baseSeries[0], id: 103, source: { anilist: { id: 103 } } },
+    ];
+    const query = () => runFeedQuery({
+      feed,
+      series: weightedSeries,
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+
+    expect(query().items.map((item) => item.id).sort()).toEqual([101, 102, 103]);
+
+    feed.filters.tagWeightTypes = ["core"];
+    expect(query().items.map((item) => item.id)).toEqual([101]);
+
+    feed.filters.tagWeightTypes = ["incidental"];
+    expect(query().items.map((item) => item.id)).toEqual([102]);
+
+    feed.filters.tagWeightTypes = [];
+    expect(query().items).toEqual([]);
+  });
+
+  it("does not apply AniList tag weights to non-AniList or OEL records", () => {
+    const feed = createFeed("weighted non-AniList tags");
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["non-anilist", "oel"];
+    feed.filters.includeTagIds = [1];
+    feed.filters.tagWeightTypes = ["core"];
+    feed.sort = [{ id: "year", metric: "year", direction: "desc" }];
+    feed.view.metricSlots = ["year"];
+
+    const result = runFeedQuery({
+      feed,
+      series: [
+        {
+          ...baseSeries[0],
+          id: 501,
+          display_title: "Non-AniList tagged",
+          stats: { popularity: null, favourites: null, meanScore: null },
+          source: { mangaupdates: { id: "non-anilist", url: null } },
+          tag_ids: [1],
+          tag_weights: { 1: "incidental" },
+        },
+        {
+          ...baseSeries[0],
+          id: 502,
+          display_title: "OEL tagged",
+          type: "oel",
+          stats: { popularity: null, favourites: null, meanScore: null },
+          source: { mangaupdates: { id: "oel", url: null } },
+          tag_ids: [1],
+          tag_weights: { 1: "incidental" },
+        },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+    });
+
+    expect(result.items.map((item) => item.id).sort()).toEqual([501, 502]);
+  });
+
+  it("keeps excluded tags excluded regardless of the enabled weights", () => {
+    const feed = createFeed("weighted exclusions");
+    feed.filters.sourceModes = ["anilist"];
+    feed.filters.includeTagIds = [];
+    feed.filters.excludeTagIds = [1];
+    feed.filters.tagWeightTypes = ["incidental"];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 111, source: { anilist: { id: 111 } }, tag_weights: { 1: "core" } },
+        { ...baseSeries[0], id: 112, source: { anilist: { id: 112 } }, tag_weights: { 1: "incidental" } },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+
+    expect(result.items).toEqual([]);
+  });
+
+  it("does not hide child-only tags when a sensitive parent is excluded", () => {
+    const feed = createFeed("exact sensitive");
+    const result = runFeedQuery({
+      feed,
+      series: [{ ...baseSeries[0], id: 44, display_title: "Child only", tag_ids: [6] }],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([44]);
+  });
+
+  it("does not hide non-BL relationship tags as sensitive Boys Love", () => {
+    const feed = createFeed("non bl");
+    feed.filters.sourceMode = "anilist";
+    feed.filters.sourceModes = ["anilist"];
+    const result = runFeedQuery({
+      feed,
+      series: [{ ...baseSeries[0], id: 40, display_title: "Non BL friendship", tag_ids: [5] }],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([40]);
+  });
+
+  it("includes Boys Love descendants in the global relationship sensitive group", () => {
+    const groups = buildSensitiveTagGroups(tags);
+    expect(groups.relationship.has(7)).toBe(true);
+    expect(groups.relationship.has(8)).toBe(true);
+    expect(groups.relationship.has(5)).toBe(false);
+  });
+
+  it("includes Hentai descendants in the global adult sensitive group", () => {
+    const groups = buildSensitiveTagGroups(tags);
+    expect(groups.adult.has(2)).toBe(true);
+    expect(groups.adult.has(6)).toBe(true);
+  });
+
+  it("maps sensitive search aliases to the correct tag families", () => {
+    const groups = buildSensitiveTagGroups(tags);
+    expect(sensitiveTagIdsForSearch("BL", groups)?.has(7)).toBe(true);
+    expect(sensitiveTagIdsForSearch("GL", groups)?.has(10)).toBe(true);
+    expect(sensitiveTagIdsForSearch("smut", groups)?.has(9)).toBe(true);
+    expect(sensitiveTagIdsForSearch("action", groups)).toBeNull();
+  });
+
+  it("lets an enabled sensitive family override the default content-rating gate", () => {
+    const groups = buildSensitiveTagGroups(tags);
+    const adultTitle = {
+      ...baseSeries[0],
+      id: 46,
+      content_rating: "pornographic" as const,
+      tag_ids: [9],
+    };
+
+    expect(isSearchVisible(adultTitle, DEFAULT_SETTINGS, groups)).toBe(false);
+    expect(isSearchVisible(adultTitle, { ...DEFAULT_SETTINGS, searchAdultTags: true }, groups)).toBe(true);
+  });
+
+  it("includes adult-rated search titles even when their exported tags omit Smut and Hentai", () => {
+    const groups = buildSensitiveTagGroups(tags);
+    const adultRatedWithoutAdultTag = {
+      ...baseSeries[0],
+      id: 47,
+      display_title: "Melt Bless You",
+      content_rating: "erotica" as const,
+      tag_ids: [1],
+    };
+
+    expect(isSearchVisible(adultRatedWithoutAdultTag, DEFAULT_SETTINGS, groups)).toBe(false);
+    expect(
+      isSearchVisible(adultRatedWithoutAdultTag, { ...DEFAULT_SETTINGS, searchAdultTags: true }, groups),
+    ).toBe(true);
+  });
+
+  it("segments non-AniList titles by source mode", () => {
+    const feed = createFeed("non anilist");
+    feed.filters.sourceMode = "non-anilist";
+    feed.filters.sourceModes = ["non-anilist"];
+    feed.sort = [{ id: "title", metric: "title", direction: "asc" }];
+    feed.view.metricSlots = ["year", "chapters"];
+    const result = runFeedQuery({
+      feed,
+      series: baseSeries,
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, adultUnlocked: true, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([3]);
+  });
+
+  it("sorts by rolling growth inside available history", () => {
+    const feed = createFeed("growth");
+    feed.filters.sourceMode = "anilist";
+    feed.filters.sourceModes = ["anilist"];
+    feed.filters.rolling = { mode: "fixed", amount: 1, unit: "days", from: "2024-05-01", to: "2024-05-10" };
+    feed.sort = [{ id: "growth", metric: "popularityGrowth", direction: "desc" }];
+    const result = runFeedQuery({
+      feed,
+      series: baseSeries,
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, adultUnlocked: true, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items[0].id).toBe(1);
+    expect(result.activeNotes).toContain("Growth window: 2024-05-03 to 2024-05-10.");
+  });
+
+  it("falls back to popularity when growth data is unavailable", () => {
+    const feed = createFeed("missing growth");
+    feed.filters.sourceMode = "anilist";
+    feed.filters.sourceModes = ["anilist"];
+    feed.sort = [{ id: "growth", metric: "popularityGrowth", direction: "desc" }];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 20, display_title: "Lower popularity", stats: { ...baseSeries[0].stats, popularity: 200 } },
+        { ...baseSeries[0], id: 21, display_title: "Higher popularity", stats: { ...baseSeries[0].stats, popularity: 900 } },
+      ],
+      tags,
+      history: {},
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items.map((item) => item.id)).toEqual([21, 20]);
+  });
+
+  it("sorts by release date when query index dates are present", () => {
+    const feed = createFeed("release");
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["anilist", "non-anilist"];
+    feed.filters.includeTagIds = [1, 2];
+    feed.sort = [{ id: "release", metric: "releaseDate", direction: "desc" }];
+    feed.view.metricSlots = ["releaseDate"];
+    const result = runFeedQuery({
+      feed,
+      series: baseSeries,
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, adultUnlocked: true, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([3, 2, 1]);
+  });
+
+  it("omits titles with no release date when sorting by release", () => {
+    const feed = createFeed("missing non anilist values");
+    feed.filters.sourceMode = "non-anilist";
+    feed.filters.sourceModes = ["non-anilist"];
+    feed.sort = [{ id: "release", metric: "releaseDate", direction: "desc" }];
+    feed.view.metricSlots = ["releaseDate"];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[2], id: 500, display_title: "Alpha", published: null, last_updated_at: "2026-06-01T00:00:00.000Z" },
+        { ...baseSeries[2], id: 600, display_title: "Zulu", published: null, last_updated_at: "2026-06-08T00:00:00.000Z" },
+      ],
+      tags,
+      history: {},
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items).toEqual([]);
+  });
+
+  it("keeps estimated release dates in their own chronological position", () => {
+    const feed = createFeed("release chronology");
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["anilist", "non-anilist"];
+    feed.sort = [{ id: "release", metric: "releaseDate", direction: "desc" }];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 700, display_title: "Confirmed 2026", published: { start_date: "2026-06-05", end_date: null, start_date_is_estimated: false } },
+        { ...baseSeries[0], id: 701, display_title: "Estimated 2025", published: { start_date: "2025-01-01", end_date: null, start_date_is_estimated: true }, first_seen_at: "2026-06-10T00:00:00.000Z", first_seen_at_is_trusted: true },
+        { ...baseSeries[0], id: 702, display_title: "Estimated 2014", published: { start_date: "2014-01-01", end_date: null, start_date_is_estimated: true }, first_seen_at: "2026-06-10T00:00:00.000Z", first_seen_at_is_trusted: true },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([700, 701, 702]);
+  });
+
+  it("can exclude estimated release dates while keeping real dates", () => {
+    const feed = createFeed("real releases only");
+    feed.filters.sourceModes = ["anilist", "non-anilist"];
+    feed.filters.sourceMode = "mixed";
+    feed.filters.includeEstimatedDates = false;
+    feed.sort = [{ id: "release", metric: "releaseDate", direction: "desc" }];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 80, display_title: "Real", published: { start_date: "2026-06-05", end_date: null, start_date_is_estimated: false } },
+        { ...baseSeries[0], id: 81, display_title: "Estimated", published: { start_date: "2026-01-01", end_date: null, start_date_is_estimated: true } },
+        { ...baseSeries[0], id: 82, display_title: "Missing", published: null },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([80]);
+  });
+
+  it("uses MangaBaka ID descending for Add outside AniList-only feeds", () => {
+    const feed = createFeed("latest added");
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["anilist", "non-anilist"];
+    feed.sort = [{ id: "mb", metric: "mangabakaLatestRank", direction: "asc" }];
+    feed.view.metricSlots = ["year"];
+    expect(feedUsesAniListOnlyParameters(feed)).toBe(false);
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 90, display_title: "AniList rank one", cover: validTestCover, mangabaka_latest_rank: 1 },
+        {
+          ...baseSeries[2],
+          id: 91,
+          display_title: "Non AniList rank two",
+          cover: "https://cdn.mangabaka.dev/covers/non-anilist-rank-two.webp",
+          stats: { popularity: null, favourites: null, meanScore: null },
+          mangabaka_latest_rank: 2,
+          source: { mangaupdates: { id: "rank-two", url: "https://www.mangaupdates.com/series/rank-two" } },
+        },
+        {
+          ...baseSeries[2],
+          id: 92,
+          display_title: "Non AniList rank four",
+          cover: "https://cdn.mangabaka.dev/covers/non-anilist-rank-four.webp",
+          stats: { popularity: null, favourites: null, meanScore: null },
+          mangabaka_latest_rank: 4,
+          source: { mangaupdates: { id: "rank-four", url: "https://www.mangaupdates.com/series/rank-four" } },
+        },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, nonAniListPlacement: "bottom" },
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items.map((item) => item.id)).toEqual([92, 91, 90]);
+  });
+
+  it("requires MangaUpdates and a real cover without restricting the cover source", () => {
+    const feed = createFeed("non anilist add hygiene");
+    feed.filters.sourceMode = "non-anilist";
+    feed.filters.sourceModes = ["non-anilist"];
+    feed.sort = [{ id: "mb", metric: "mangabakaLatestRank", direction: "asc" }];
+    feed.view.metricSlots = ["year", "chapters"];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        {
+          ...baseSeries[2],
+          id: 130,
+          display_title: "Good MangaUpdates Cover",
+          cover: "https://cdn.mangabaka.dev/imgproxy/plain/x350@1/aHR0cHM6Ly9jZG4ubWFuZ2F1cGRhdGVzLmNvbS9pbWFnZS9nb29kLmpwZw",
+          mangabaka_latest_rank: 1,
+          source: { mangaupdates: { id: "good", url: "https://www.mangaupdates.com/series/good" } },
+        },
+        {
+          ...baseSeries[2],
+          id: 131,
+          display_title: "No Cover",
+          cover: null,
+          mangabaka_latest_rank: 2,
+          source: { mangaupdates: { id: "no-cover", url: "https://www.mangaupdates.com/series/no-cover" } },
+        },
+        {
+          ...baseSeries[2],
+          id: 588985,
+          display_title: "Teto X Egen",
+          cover: "https://cdn.mangabaka.dev/imgproxy/plain/x350@1/aHR0cHM6Ly9hcC1wcm94eS5tYW5nYWJha2EuZGV2L3Byb3h5LnBocA",
+          mangabaka_latest_rank: 3,
+          source: {
+            animeplanet: { id: "teto-x-egen", url: "https://www.anime-planet.com/manga/teto-x-egen" },
+            mangaupdates: { id: "ygsxi0l", url: "https://www.mangaupdates.com/series/ygsxi0l" },
+          },
+        },
+        {
+          ...baseSeries[2],
+          id: 133,
+          display_title: "Anime Planet Only",
+          cover: "https://cdn.mangabaka.dev/covers/ap-only.webp",
+          mangabaka_latest_rank: 4,
+          source: { animeplanet: { id: "ap-only", url: "https://www.anime-planet.com/manga/ap-only" } },
+        },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items.map((item) => item.id)).toEqual([588985, 130]);
+  });
+
+  it("separates OEL from Non-AniList and allows both in one Add feed", () => {
+    const feed = createFeed("OEL and non-AniList Add");
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["non-anilist", "oel"];
+    feed.sort = [{ id: "mb", metric: "mangabakaLatestRank", direction: "asc" }];
+    feed.view.metricSlots = ["year"];
+    const validCover = "https://cdn.mangabaka.dev/covers/valid.webp";
+    const result = runFeedQuery({
+      feed,
+      series: [
+        {
+          ...baseSeries[2],
+          id: 140,
+          type: "oel",
+          display_title: "OEL with MangaUpdates",
+          cover: validCover,
+          source: { mangaupdates: { id: "oel", url: "https://www.mangaupdates.com/series/oel" } },
+        },
+        {
+          ...baseSeries[2],
+          id: 128,
+          type: "oel",
+          display_title: "Hand Jumper",
+          cover: validCover,
+          source: { animeplanet: { id: "hand-jumper", url: "https://www.anime-planet.com/manga/hand-jumper" } },
+        },
+        {
+          ...baseSeries[2],
+          id: 142,
+          type: "manhwa",
+          display_title: "Non-AniList with MangaUpdates",
+          cover: validCover,
+          source: { mangaupdates: { id: "non-ani", url: "https://www.mangaupdates.com/series/non-ani" } },
+        },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items.map((item) => item.id)).toEqual([142, 140, 128]);
+
+    feed.filters.sourceMode = "oel";
+    feed.filters.sourceModes = ["oel"];
+    expect(runFeedQuery({ feed, series: result.items, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([140, 128]);
+  });
+
+  it("excludes untagged OEL titles only when using Add sort", () => {
+    const feed = createFeed("OEL Add");
+    feed.filters.sourceMode = "oel";
+    feed.filters.sourceModes = ["oel"];
+    feed.sort = [{ id: "mb", metric: "mangabakaLatestRank", direction: "asc" }];
+    feed.view.metricSlots = ["year"];
+    const series = [
+      {
+        ...baseSeries[2],
+        id: 128,
+        type: "oel",
+        display_title: "Tagged OEL",
+        cover: validTestCover,
+      },
+      {
+        ...baseSeries[2],
+        id: 127,
+        type: "oel",
+        display_title: "Untagged OEL",
+        cover: validTestCover,
+        tag_ids: [],
+      },
+    ];
+
+    expect(runFeedQuery({ feed, series, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([128]);
+
+    feed.sort = [{ id: "year", metric: "year", direction: "desc" }];
+    expect(runFeedQuery({ feed, series, tags, history, labels: [], settings: DEFAULT_SETTINGS }).items.map((item) => item.id)).toEqual([128, 127]);
+  });
+
+  it("uses MangaBaka ID ordering for Add in AniList-only feeds", () => {
+    const feed = createFeed("ani add");
+    feed.filters.sourceMode = "anilist";
+    feed.filters.sourceModes = ["anilist"];
+    feed.sort = [{ id: "mb", metric: "mangabakaLatestRank", direction: "asc" }];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        {
+          ...baseSeries[0],
+          id: 120,
+          display_title: "Lower AniList ID",
+          cover: validTestCover,
+          source: { anilist: { id: 120, rating: null, url: "https://anilist.co/manga/120" } },
+          anilist_first_seen_at: "2026-06-10T00:00:00.000Z",
+          first_seen_at: "2026-06-10T00:00:00.000Z",
+        },
+        {
+          ...baseSeries[0],
+          id: 121,
+          display_title: "Higher AniList ID",
+          cover: validTestCover,
+          source: { anilist: { id: 121, rating: null, url: "https://anilist.co/manga/121" } },
+          anilist_first_seen_at: "2026-06-01T00:00:00.000Z",
+          first_seen_at: "2026-06-01T00:00:00.000Z",
+        },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items.map((item) => item.id)).toEqual([121, 120]);
+  });
+
+  it("applies Add hygiene and shipped Latest Listings exclusions to AniList feeds", () => {
+    const feed = createFeed("AniList Add hygiene");
+    feed.filters.sourceMode = "anilist";
+    feed.filters.sourceModes = ["anilist"];
+    feed.sort = [{ id: "mb", metric: "mangabakaLatestRank", direction: "asc" }];
+    const validCover = "https://cdn.mangabaka.dev/covers/valid.webp";
+    const result = runFeedQuery({
+      feed,
+      series: [
+        {
+          ...baseSeries[0],
+          id: 150,
+          display_title: "Valid AniList Add",
+          cover: validCover,
+          source: { anilist: { id: 150, rating: null, url: "https://anilist.co/manga/150" } },
+          mangabaka_latest_rank: 1,
+        },
+        {
+          ...baseSeries[0],
+          id: 151,
+          display_title: "Missing cover",
+          cover: null,
+          source: { anilist: { id: 151, rating: null, url: "https://anilist.co/manga/151" } },
+          mangabaka_latest_rank: 2,
+        },
+        {
+          ...baseSeries[0],
+          id: 152,
+          display_title: "Missing detail tags",
+          cover: validCover,
+          tag_ids: [],
+          source: { anilist: { id: 152, rating: null, url: "https://anilist.co/manga/152" } },
+          mangabaka_latest_rank: 3,
+        },
+        {
+          ...baseSeries[0],
+          id: 153,
+          display_title: "Shipped excluded tag",
+          cover: validCover,
+          tag_ids: [DEFAULT_LATEST_LISTINGS_EXCLUDE_TAG_IDS.at(-1)!],
+          source: { anilist: { id: 153, rating: null, url: "https://anilist.co/manga/153" } },
+          mangabaka_latest_rank: 4,
+        },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items.map((item) => item.id)).toEqual([150]);
+  });
+
+  it("matches MangaBaka safe latest by applying local safety and exact tag filters after rank order", () => {
+    const feed = createFeed("MangaBaka safe latest");
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["anilist", "non-anilist"];
+    feed.filters.contentRatings = ["safe"];
+    feed.filters.excludeTagIds = [4, 180, 41, 10];
+    feed.filters.includeEstimatedDates = true;
+    feed.sort = [{ id: "mb", metric: "mangabakaLatestRank", direction: "asc" }];
+    feed.view.metricSlots = ["year"];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 100, display_title: "Safe rank two", cover: validTestCover, content_rating: "safe", tag_ids: [1], mangabaka_latest_rank: 2 },
+        { ...baseSeries[0], id: 101, display_title: "Suggestive rank one", cover: validTestCover, content_rating: "suggestive", tag_ids: [1], mangabaka_latest_rank: 1 },
+        { ...baseSeries[0], id: 102, display_title: "BL exact rank three", cover: validTestCover, content_rating: "safe", tag_ids: [180], mangabaka_latest_rank: 3 },
+        { ...baseSeries[0], id: 103, display_title: "Safe rank four", cover: validTestCover, content_rating: "safe", tag_ids: [1], mangabaka_latest_rank: 4 },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: null,
+      metaHistoryLast: null,
+    });
+    expect(result.items.map((item) => item.id)).toEqual([103, 100]);
+  });
+
+  it("keeps future release dates inactive for sorting and rolling filters", () => {
+    const feed = createFeed("future release");
+    feed.filters.sourceMode = "mixed";
+    feed.filters.sourceModes = ["anilist", "non-anilist"];
+    feed.sort = [{ id: "release", metric: "releaseDate", direction: "desc" }];
+    feed.view.metricSlots = ["releaseDate"];
+    const future = { ...baseSeries[0], id: 41, display_title: "Future dated", published: { start_date: "2999-01-01", end_date: null } };
+    const past = { ...baseSeries[0], id: 42, display_title: "Past dated", published: { start_date: "2024-12-01", end_date: null } };
+    const result = runFeedQuery({
+      feed,
+      series: [future, past],
+      tags,
+      history,
+      labels: [],
+      settings: { ...DEFAULT_SETTINGS, nonAniListPlacement: "mixed" },
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([42]);
+
+    feed.filters.dateField = "release";
+    feed.filters.rolling = { mode: "fixed", amount: 1, unit: "days", from: "2998-01-01", to: "2999-12-31" };
+    const filtered = runFeedQuery({
+      feed,
+      series: [future, past],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(filtered.items).toEqual([]);
+  });
+
+  it("keeps parent tag selection exact instead of matching children", () => {
+    const feed = createFeed("hierarchy");
+    feed.filters.sourceModes = ["anilist", "non-anilist"];
+    feed.filters.includeTagIds = [3];
+    feed.filters.excludeTagIds = [];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 10, display_title: "Child tagged", tag_ids: [4] },
+        { ...baseSeries[0], id: 11, display_title: "Other tagged", tag_ids: [1] },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([]);
+  });
+
+  it("uses raw metric values for range filters", () => {
+    const feed = createFeed("exact metric ranges");
+    feed.filters.sourceMode = "anilist";
+    feed.filters.sourceModes = ["anilist"];
+    feed.filters.metricRanges = [{ id: "disc", metric: "fanFavouriteDiscoveryPercentile", min: 90, max: 90 }];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 70, display_title: "Exactly 90", analytics: { fanFavouriteDiscoveryPercentile: 90 } },
+        { ...baseSeries[0], id: 71, display_title: "Above 90", analytics: { fanFavouriteDiscoveryPercentile: 90.4 } },
+        { ...baseSeries[0], id: 72, display_title: "Rounds below 90", analytics: { fanFavouriteDiscoveryPercentile: 89.4 } },
+        { ...baseSeries[0], id: 73, display_title: "Rounds above 90", analytics: { fanFavouriteDiscoveryPercentile: 90.5 } },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+      metaHistoryFirst: "2024-05-01",
+      metaHistoryLast: "2024-05-10",
+    });
+    expect(result.items.map((item) => item.id)).toEqual([70]);
+  });
+
+  it("ORs ranges for one metric while keeping different metrics as AND", () => {
+    const feed = createFeed("popularity bands");
+    feed.filters.metricRanges = [
+      { id: "deep", metric: "popularityPercentile", min: null, max: 69 },
+      { id: "mainstream", metric: "popularityPercentile", min: 90, max: 98 },
+      { id: "fan-rank", metric: "fanFavouriteDiscoveryPercentile", min: 60, max: null },
+    ];
+    const result = runFeedQuery({
+      feed,
+      series: [
+        { ...baseSeries[0], id: 74, analytics: { popularityPercentile: 65, fanFavouriteDiscoveryPercentile: 80 } },
+        { ...baseSeries[0], id: 75, analytics: { popularityPercentile: 95, fanFavouriteDiscoveryPercentile: 70 } },
+        { ...baseSeries[0], id: 76, analytics: { popularityPercentile: 85, fanFavouriteDiscoveryPercentile: 90 } },
+        { ...baseSeries[0], id: 77, analytics: { popularityPercentile: 95, fanFavouriteDiscoveryPercentile: 40 } },
+      ],
+      tags,
+      history,
+      labels: [],
+      settings: DEFAULT_SETTINGS,
+    });
+
+    expect(result.items.map((item) => item.id)).toEqual([74, 75]);
+  });
+});

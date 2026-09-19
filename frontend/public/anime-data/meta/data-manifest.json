@@ -1,0 +1,76 @@
+{
+  "contract": "manhwa-frontend-data",
+  "schemaVersion": 1,
+  "buildId": "v1-904b52ac5e1a0875",
+  "generatedAt": "2026-09-19T06:23:19.171Z",
+  "datasets": {
+    "catalog": {
+      "kind": "array",
+      "count": 11228,
+      "chunks": [
+        {
+          "path": "builds/v1-904b52ac5e1a0875/catalog-000.json.gz",
+          "bytes": 4307455,
+          "sha256": "c1829168366b388c7d99446b0325f6375a62f2054d77c68376b1839fd98ce1f4",
+          "records": 5000
+        },
+        {
+          "path": "builds/v1-904b52ac5e1a0875/catalog-001.json.gz",
+          "bytes": 3136181,
+          "sha256": "54987e6721a6dab7407272314a87f6cab1effafdf56e18e1b57d78f652771ede",
+          "records": 5000
+        },
+        {
+          "path": "builds/v1-904b52ac5e1a0875/catalog-002.json.gz",
+          "bytes": 655899,
+          "sha256": "cc42b3dd0eda546749eb2b4360d7a365d0b2d1f1cd81a455d38315f14f2efff9",
+          "records": 1228
+        }
+      ]
+    },
+    "tags": {
+      "kind": "array",
+      "count": 439,
+      "chunks": [
+        {
+          "path": "builds/v1-904b52ac5e1a0875/tags-000.json.gz",
+          "bytes": 9134,
+          "sha256": "7acd923724ecf08c123cafef4430f225e785542c6dce8e416ae87157f98853a6",
+          "records": 439
+        }
+      ]
+    },
+    "history": {
+      "kind": "object",
+      "count": 11228,
+      "chunks": [
+        {
+          "path": "builds/v1-904b52ac5e1a0875/history-000.json.gz",
+          "bytes": 153761,
+          "sha256": "5b3d004991730a262386aadbae0cf9ad42daf60789df21ed54d713c37493bcb7",
+          "records": 5000
+        },
+        {
+          "path": "builds/v1-904b52ac5e1a0875/history-001.json.gz",
+          "bytes": 158517,
+          "sha256": "460924623c1b1410945fe7aed95f2c5dae4033175357c38ef694a7bc48254dfe",
+          "records": 5000
+        },
+        {
+          "path": "builds/v1-904b52ac5e1a0875/history-002.json.gz",
+          "bytes": 39605,
+          "sha256": "4b379e9ec8ecbc8ef7468b53d51f7a28129cdb8c80178c0c4e957625b23e48b2",
+          "records": 1228
+        }
+      ]
+    }
+  },
+  "source": {
+    "catalogue": "AniList GraphQL API",
+    "titlePolicy": "Use AniList English title when present; otherwise show AniList romanized/user-preferred title and flag the row in the audit data.",
+    "coverPolicy": "Use AniList Media.coverImage.extraLarge, with large/medium fallback. Feed accent colors use AniList Media.coverImage.color. Missing values remain null.",
+    "tagPolicy": "Use AniList genres plus AniList MediaTag IDs, categories, and per-title relevance ranks. Do not map AniList ranks into MangaBaka weight classes.",
+    "episodePolicy": "AniList episodes are stored in the shared total_chapters field for compatibility and displayed as Episodes in the anime shell.",
+    "historyPolicy": "One dated snapshot is included so the shared frontend contract can load; it is not a time-series history feed."
+  }
+}

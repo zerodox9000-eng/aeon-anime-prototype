@@ -1,0 +1,365 @@
+import { describe, expect, it } from "vitest";
+import { mergeCatalogLinks, normalizeCatalog, resolveDisplayTitle } from "./catalog";
+import { resolveVisibleTitle } from "./displayTitle";
+import { formatMetricValue, metricValue } from "./metrics";
+import type { HistoryMap, SeriesCatalog } from "./types";
+
+const base: SeriesCatalog = {
+  id: 1,
+  display_title: "Blind Devotion",
+  cover: "https://example.com/cover.jpg?size=large",
+  year: null,
+  status: "releasing",
+  content_rating: "safe",
+  total_chapters: null,
+  tag_ids: [1],
+  stats: { popularity: 89, favourites: 9, meanScore: 71 },
+  analytics: {
+    fanFavouriteRaw: 10.1,
+    fanFavouriteDiscoveryScore: 40,
+    fanFavouriteDiscoveryPercentile: 55,
+  },
+  published: { start_date: "2020-01-01", start_date_is_estimated: true },
+};
+
+const history: HistoryMap = {
+  "99": [
+    { d: "2026-05-15", p: 50, f: 5, s: 70, r: 10, rp: 40, pp: 20, ds: 25, dp: 40 },
+  ],
+  "1": [
+    { d: "2026-05-20", p: 70, f: 7, s: 70, r: 10, rp: 40, pp: 20, ds: 30, dp: 45 },
+  ],
+  "2": [
+    { d: "2026-05-21", p: 75, f: 8, s: 71, r: 10.6, rp: 42, pp: 22, ds: 35, dp: 50 },
+  ],
+};
+
+describe("catalog normalization", () => {
+  it("deduplicates same-cover placeholder records and keeps the real title", () => {
+    const duplicate: SeriesCatalog = {
+      ...base,
+      id: 2,
+      display_title: "Unknown Title",
+      cover: "https://example.com/cover.jpg",
+    };
+    const normalized = normalizeCatalog([base, duplicate], history);
+    expect(normalized.catalog).toHaveLength(1);
+    expect(normalized.catalog[0].display_title).toBe("Blind Devotion");
+    expect(normalized.catalog[0].merged_ids).toEqual(expect.arrayContaining([1, 2]));
+    expect(normalized.history[String(normalized.catalog[0].id)]).toHaveLength(2);
+  });
+
+  it("does not merge distinct source records that reuse a cover", () => {
+    const firstPart: SeriesCatalog = {
+      ...base,
+      id: 514258,
+      display_title: "Pungsajeongi 1-bu",
+      source: { anilist: { id: 198979 } },
+    };
+    const secondPart: SeriesCatalog = {
+      ...base,
+      id: 514259,
+      display_title: "Pungsajeongi 2-bu",
+      source: { anilist: { id: 198980 } },
+    };
+
+    const normalized = normalizeCatalog([firstPart, secondPart], {});
+
+    expect(normalized.catalog).toHaveLength(2);
+    expect(normalized.catalog.map((item) => item.merged_ids)).toEqual([[514258], [514259]]);
+  });
+
+  it("preserves canonical links, source fields, title aliases, and read links across duplicates", () => {
+    const older = {
+      ...base,
+      id: 10,
+      display_title: "Canonical series",
+      last_updated_at: "2026-06-01T00:00:00.000Z",
+      titles: [{ language: "en", title: "Canonical series", traits: [], is_primary: true, note: null }],
+      links: {
+        mangabaka: "https://mangabaka.org/10",
+        read_en: "https://reader.example/older",
+        read_en_all: ["https://reader.example/older"],
+      },
+      source: {
+        anilist: { id: 123, rating: 82, url: "https://anilist.co/manga/123" },
+        mangaupdates: { id: "abc", url: "https://www.mangaupdates.com/series/abc" },
+      },
+    } as SeriesCatalog;
+    const newer = {
+      ...base,
+      id: 20,
+      display_title: "Alternate series title",
+      last_updated_at: "2026-06-02T00:00:00.000Z",
+      titles: [{ language: "en", title: "Alternate series title", traits: [], is_primary: false, note: null }],
+      links: {
+        mangabaka: "https://mangabaka.org/20",
+        read_en: null,
+        read_en_all: ["https://reader.example/newer"],
+      },
+      source: {
+        anilist: { id: 123, rating: null, url: null },
+        animeplanet: { id: "alternate-series", url: "https://www.anime-planet.com/manga/alternate-series" },
+      },
+    } as SeriesCatalog;
+
+    const normalized = normalizeCatalog([older, newer], {});
+    const [merged] = normalized.catalog;
+
+    expect(merged.id).toBe(10);
+    expect(merged.display_title).toBe("Canonical series");
+    expect(merged.links?.mangabaka).toBe("https://mangabaka.org/10");
+    expect(merged.links?.read_en).toBe("https://reader.example/older");
+    expect(merged.links?.read_en_all).toEqual(expect.arrayContaining([
+      "https://reader.example/older",
+      "https://reader.example/newer",
+    ]));
+    expect(merged.source?.anilist?.url).toBe("https://anilist.co/manga/123");
+    expect(merged.source?.mangaupdates?.id).toBe("abc");
+    expect(merged.source?.animeplanet?.id).toBe("alternate-series");
+    expect(merged.titles?.map((title) => title.title)).toEqual(expect.arrayContaining([
+      "Canonical series",
+      "Alternate series title",
+    ]));
+  });
+
+  it("joins explicit merged IDs even when source identities and covers differ", () => {
+    const first = { ...base, id: 30, source: { anilist: { id: 300 } } } as SeriesCatalog;
+    const second = {
+      ...base,
+      id: 31,
+      cover: "https://example.com/another-cover.jpg",
+      source: { anilist: { id: 301 } },
+    } as SeriesCatalog;
+    const declared = { ...first, merged_ids: [30, 31] };
+
+    const normalized = normalizeCatalog([declared, second], {});
+
+    expect(normalized.catalog).toHaveLength(1);
+    expect(normalized.catalog[0].merged_ids).toEqual(expect.arrayContaining([30, 31]));
+  });
+
+  it("normalizes an old numeric MangaBaka link to the selected canonical ID", () => {
+    const links = mergeCatalogLinks(
+      { mangabaka: "https://mangabaka.org/37098", read_en: "https://reader.example/title" },
+      { mangabaka: "https://mangabaka.org/42991", read_en: null },
+      42991,
+      true,
+    );
+
+    expect(links?.mangabaka).toBe("https://mangabaka.org/42991");
+    expect(links?.read_en).toBe("https://reader.example/title");
+  });
+
+  it("keeps tag weights when duplicate records are normalized together", () => {
+    const normalized = normalizeCatalog([
+      { ...base, id: 1, tag_weights: { 1: "core" } },
+      { ...base, id: 2, display_title: "Duplicate", tag_weights: { 2: "defining" } },
+    ], history);
+
+    expect(normalized.catalog[0].tag_weights).toEqual({ 1: "core", 2: "defining" });
+  });
+
+  it("keeps an estimated release date instead of using the first history date", () => {
+    const normalized = normalizeCatalog([base], history);
+    expect(normalized.catalog[0].published?.start_date).toBe("2020-01-01");
+    expect(normalized.catalog[0].year).toBeNull();
+  });
+
+  it("does not replace an old estimated release with a history timestamp", () => {
+    const oldHistory: HistoryMap = {
+      "1": [
+        { d: "2026-05-15", p: 70, f: 7, s: 70, r: 10, rp: 40, pp: 20, ds: 30, dp: 45 },
+      ],
+    };
+    const normalized = normalizeCatalog([base], oldHistory);
+    expect(normalized.catalog[0].published?.start_date).toBe("2020-01-01");
+  });
+
+  it("keeps an estimated release date when first-seen data is absent", () => {
+    const normalized = normalizeCatalog([{ ...base, id: 5 }], {});
+    expect(normalized.catalog[0].published?.start_date).toBe("2020-01-01");
+    expect(normalized.catalog[0].year).toBeNull();
+  });
+
+  it("leaves release date empty when no published start date exists", () => {
+    const normalized = normalizeCatalog([{ ...base, id: 55, published: { start_date: null } }], {});
+    expect(normalized.catalog[0].published?.start_date).toBeNull();
+    expect(normalized.catalog[0].year).toBeNull();
+  });
+
+  it("preserves actual backend release dates", () => {
+    const actual = {
+      ...base,
+      id: 6,
+      published: { start_date: "2021-08-05", end_date: null, start_date_is_estimated: false },
+    };
+    const normalized = normalizeCatalog([actual], {});
+    expect(normalized.catalog[0].published?.start_date).toBe("2021-08-05");
+    expect(normalized.catalog[0].year).toBe(2021);
+  });
+
+  it("preserves an estimated release date instead of replacing it with first seen", () => {
+    const estimated = {
+      ...base,
+      id: 66,
+      year: 2024,
+      first_seen_at: "2026-06-10T00:00:00.000Z",
+      published: { start_date: "2026-01-01", end_date: null, start_date_is_estimated: true },
+    };
+    const normalized = normalizeCatalog([estimated], {});
+    expect(normalized.catalog[0].published?.start_date).toBe("2026-01-01");
+    expect(normalized.catalog[0].year).toBe(2024);
+  });
+
+  it("preserves a new AniList first-seen timestamp when a title gains AniList linkage later", () => {
+    const previous = {
+      ...base,
+      id: 77,
+      source: { anilist: null },
+      anilist_first_seen_at: null,
+    };
+    const current = {
+      ...base,
+      id: 77,
+      source: { anilist: { id: 123, rating: null, url: "https://anilist.co/manga/123" } },
+      anilist_first_seen_at: null,
+    };
+    const normalized = normalizeCatalog([current], {}, new Map([[77, previous]]), "2026-06-19T00:00:00.000Z");
+    expect(normalized.catalog[0].anilist_first_seen_at).toBe("2026-06-19");
+  });
+
+  it("does not derive a display title from a source slug", () => {
+    const normalized = normalizeCatalog([
+      {
+        ...base,
+        id: 7,
+        display_title: "Unknown Title",
+        source: {
+          anilist: null,
+          mangaupdates: null,
+          animeplanet: { id: "the-demonic-warrior", rating: null, url: "https://www.anime-planet.com/manga/the-demonic-warrior" },
+        },
+      },
+    ], {});
+    expect(normalized.catalog[0].display_title).toBe("Unknown Title");
+  });
+
+  it("keeps the bundled English title ahead of a raw MangaBaka romanized detail title", () => {
+    const detail = {
+      ...base,
+      id: 8,
+      display_title: "Watashi ga Akuyaku Koushaku wo Tasukeru Riyuu",
+      mangabaka_title: "Watashi ga Akuyaku Koushaku wo Tasukeru Riyuu",
+      titles: [
+        { language: "en", title: "Why Am I Helping the Villain Duke?", traits: [], is_primary: false, note: null },
+        { language: "en", title: "Why She Helps the Villain", traits: [], is_primary: true, note: null },
+      ],
+      source: {
+        animeplanet: {
+          id: "why-she-helps-the-villain",
+          rating: null,
+          url: "https://www.anime-planet.com/manga/why-she-helps-the-villain",
+        },
+      },
+    } as SeriesCatalog;
+    const catalogItem = {
+      ...base,
+      id: 8,
+      display_title: "Why She Helps the Villain",
+    };
+
+    expect(resolveDisplayTitle(detail, catalogItem)).toBe("Why She Helps the Villain");
+  });
+
+  it("keeps the backend-selected title when no audited override is present", () => {
+    const detail = {
+      ...base,
+      id: 9,
+      display_title: "Isegyeseo Yubunamdoen Sseol",
+      mangabaka_title: "Isegyeseo Yubunamdoen Sseol",
+      titles: [
+        { language: "en", title: "I Became a Married Man in Another World", traits: [], is_primary: true, note: null },
+        { language: "en", title: "The Story of Becoming a Married Man in Another World", traits: [], is_primary: false, note: null },
+      ],
+    } as SeriesCatalog;
+
+    expect(resolveDisplayTitle(detail)).toBe("Isegyeseo Yubunamdoen Sseol");
+  });
+
+  it("keeps MangaBaka display titles ahead of external source slugs", () => {
+    const detail = {
+      ...base,
+      id: 10,
+      display_title: "Her Game of Go",
+      mangabaka_title: "Her Game of Go",
+      romanized_title: "Sonyeobaduk",
+      titles: [
+        { language: "en", title: "Girl Go", traits: [], is_primary: false, note: null },
+        { language: "en", title: "Girl's Baduk", traits: [], is_primary: false, note: null },
+        { language: "en", title: "Her Game of Go", traits: ["official"], is_primary: true, note: null },
+      ],
+      source: {
+        animeplanet: {
+          id: "girls-baduk",
+          rating: null,
+          url: "https://www.anime-planet.com/manga/girls-baduk",
+        },
+      },
+    } as SeriesCatalog;
+
+    expect(resolveDisplayTitle(detail)).toBe("Her Game of Go");
+  });
+
+  it("keeps an unknown display title when MangaBaka has no title fields", () => {
+    const detail = {
+      ...base,
+      id: 11,
+      display_title: "Unknown Title",
+      mangabaka_title: null,
+      native_title: null,
+      romanized_title: null,
+      source: {
+        animeplanet: {
+          id: "i-became-a-married-man-in-another-world",
+          rating: null,
+          url: "https://www.anime-planet.com/manga/i-became-a-married-man-in-another-world",
+        },
+      },
+    } as SeriesCatalog;
+
+    expect(resolveDisplayTitle(detail)).toBe("Unknown Title");
+  });
+
+  it("ignores a legacy Anime-Planet title when it exists", () => {
+    const detail = {
+      ...base,
+      id: 13,
+      display_title: "Her Game of Go",
+      mangabaka_title: "Her Game of Go",
+      animeplanet_title: "Anime-Planet English Title",
+    } as SeriesCatalog;
+
+    expect(resolveVisibleTitle(detail)).toBe("Her Game of Go");
+  });
+
+  it("falls back to romanized titles when no English or display title exists", () => {
+    const detail = {
+      ...base,
+      id: 12,
+      display_title: "Unknown Title",
+      mangabaka_title: null,
+      native_title: null,
+      romanized_title: "Isegyeseo Yubunamdoen Sseol",
+    };
+
+    expect(resolveDisplayTitle(detail)).toBe("Isegyeseo Yubunamdoen Sseol");
+  });
+
+  it("formats years without thousands separators and derives current growth", () => {
+    const current = { ...base, year: 2026 };
+    expect(formatMetricValue(current, "year")).toBe("2026");
+    expect(metricValue(current, "popularityGrowth", history, "2026-05-21")).toBe(19);
+    expect(formatMetricValue(current, "discoveryPercentileDelta", history, "2026-05-21")).toBe("10%");
+  });
+});

@@ -1,0 +1,403 @@
+export type ContentRating = "safe" | "suggestive" | "erotica" | "pornographic";
+export type ViewMode = "grid" | "list";
+export type GridDensity = "comfortable" | "standard" | "compact";
+export type ListDensity = "compact" | "standard" | "detailed";
+export type ListCoverSize = "small" | "medium" | "large";
+export type SourceMode = "anilist" | "non-anilist" | "oel" | "mixed";
+export type NonAniListPlacement = "top" | "bottom" | "mixed";
+export type ControlPlacement = "drawer" | "toolbar" | "fab";
+export type ThemeMode = "system" | "dark" | "light";
+export const TAG_WEIGHT_TYPES = ["core", "defining", "recurrent", "incidental", "unweighted"] as const;
+export type TagWeightType = typeof TAG_WEIGHT_TYPES[number];
+
+export interface AniListStats {
+  popularity: number | null;
+  favourites: number | null;
+  meanScore: number | null;
+}
+
+export interface AnalyticsStats {
+  fanFavouriteRaw?: number | null;
+  fanRatioPercentile?: number | null;
+  popularityPercentile?: number | null;
+  fanFavouriteDiscoveryScore?: number | null;
+  fanFavouriteDiscoveryPercentile?: number | null;
+  fanFavouriteWeighted?: number | null;
+  fanFavouritePercentile?: number | null;
+}
+
+export interface PublishedDates {
+  start_date?: string | null;
+  end_date?: string | null;
+  start_date_is_estimated?: boolean | null;
+  end_date_is_estimated?: boolean | null;
+}
+
+export interface SeriesTitle {
+  language: string | null;
+  title: string;
+  traits: string[];
+  is_primary: boolean;
+  note?: string | null;
+}
+
+export interface CreatorCredit {
+  name: string;
+  role: string;
+}
+
+export interface EnglishDubInfo {
+  status: string;
+  confidence: string;
+  available: boolean;
+  sourceCount?: number | null;
+  evidence?: string | null;
+}
+
+export interface SeriesLinks {
+  mangabaka?: string | null;
+  read_en?: string | null;
+  read_en_all?: string[];
+  official_en?: string | null;
+  watching?: Array<{ site: string; url: string; type?: string | null; language?: string | null; languageLabel?: "SUB" | "DUB" | null }>;
+}
+
+export interface SeriesCatalog {
+  id: number;
+  merged_ids?: number[];
+  display_title: string;
+  animeplanet_title?: string | null;
+  mangabaka_title?: string | null;
+  native_title?: string | null;
+  romanized_title?: string | null;
+  titles?: SeriesTitle[];
+  tag_weights?: Record<number, number | string> | null;
+  anilist_first_seen_at?: string | null;
+  cover: string | null;
+  cover_color?: string | null;
+  year: number | null;
+  status: string | null;
+  content_rating: ContentRating | string | null;
+  type?: string | null;
+  total_chapters: string | number | null;
+  tag_ids: number[];
+  stats: AniListStats;
+  analytics: AnalyticsStats;
+  published?: PublishedDates | null;
+  first_seen_at?: string | null;
+  first_seen_at_is_trusted?: boolean | null;
+  created_at?: string | null;
+  added_at?: string | null;
+  last_updated_at?: string | null;
+  mangabaka_latest_rank?: number | null;
+  mangabaka_latest_snapshot_at?: string | null;
+  authors?: string[];
+  artists?: string[];
+  creator_credits?: CreatorCredit[];
+  creator_source?: string | null;
+  english_dub?: EnglishDubInfo;
+  links?: SeriesLinks;
+  description?: string | null;
+  source?: {
+    anilist?: { id: number; rating?: number | null; url?: string | null } | null;
+    animeplanet?: { id: string; rating?: number | null; url?: string | null } | null;
+    mangaupdates?: { id: string; rating?: number | null; url?: string | null } | null;
+  } | null;
+}
+
+export interface SeriesDetail extends SeriesCatalog {
+  state?: string;
+  description?: string | null;
+  is_licensed?: boolean;
+}
+
+export interface TagNode {
+  id: number;
+  name: string;
+  path: string;
+  is_genre: boolean;
+  parent_id: number | null;
+  level: number;
+}
+
+export interface RecommendationFeature {
+  id: number;
+  profileGroups: string[];
+  primaryAnchors: string[];
+  tagFeatures: Record<string, number>;
+  tagWeightSignal?: Record<string, number>;
+  textFeatures: Record<string, number>;
+  storySignals?: Record<string, number>;
+  quality: {
+    discPct: number | null;
+    fanPct: number | null;
+    popularity: number | null;
+  };
+}
+
+export interface HistoryEntry {
+  d: string;
+  p: number;
+  f: number;
+  s: number | null;
+  r: number;
+  rp: number;
+  pp: number;
+  ds: number;
+  dp: number;
+}
+
+export type HistoryMap = Record<string, HistoryEntry[]>;
+
+export interface SortRule {
+  id: string;
+  metric: MetricId;
+  direction: "asc" | "desc";
+}
+
+export type MetricId =
+  | "title"
+  | "year"
+  | "chapters"
+  | "popularity"
+  | "favourites"
+  | "meanScore"
+  | "fanFavouriteRaw"
+  | "fanRatioPercentile"
+  | "popularityPercentile"
+  | "underratedScore"
+  | "fanFavouriteDiscoveryScore"
+  | "fanFavouriteDiscoveryPercentile"
+  | "releaseDate"
+  | "endDate"
+  | "mangabakaLatestRank"
+  | "popularityGrowth"
+  | "popularityGrowthPercent"
+  | "favouritesGrowth"
+  | "favouritesGrowthPercent"
+  | "meanScoreDelta"
+  | "fanFavouriteDelta"
+  | "discoveryScoreDelta"
+  | "discoveryPercentileDelta";
+
+export interface MetricRange {
+  id: string;
+  metric: MetricId;
+  min: number | null;
+  max: number | null;
+}
+
+export interface RollingWindow {
+  mode: "none" | "last" | "fixed";
+  amount: number;
+  unit: "days" | "weeks" | "months" | "years";
+  from?: string;
+  to?: string;
+}
+
+export interface FeedFilters {
+  sourceMode: SourceMode;
+  sourceModes?: SourceMode[];
+  query: string;
+  includeTagIds: number[];
+  excludeTagIds: number[];
+  tagMatch: "any" | "all";
+  tagWeightTypes?: TagWeightType[];
+  contentRatings: ContentRating[];
+  statuses: string[];
+  formats: string[];
+  minChapters: number | null;
+  maxChapters: number | null;
+  minYear: number | null;
+  maxYear: number | null;
+  minPopularity: number | null;
+  maxPopularity: number | null;
+  minFavourites: number | null;
+  maxFavourites: number | null;
+  minMeanScore: number | null;
+  maxMeanScore: number | null;
+  metricRanges: MetricRange[];
+  includeEstimatedDates: boolean;
+  requireOfficialEnglishLink: boolean;
+  dubOnly: boolean;
+  dateField: "none" | "release" | "end";
+  rolling: RollingWindow;
+  labelIds: string[];
+}
+
+export interface VisibleTitleFields {
+  cover: boolean;
+  title: boolean;
+  rank: boolean;
+  genreChips: boolean;
+  status: boolean;
+  year: boolean;
+  chapters: boolean;
+  contentRating: boolean;
+  popularity: boolean;
+  favourites: boolean;
+  meanScore: boolean;
+  fanFavouriteRatio: boolean;
+  discoveryScore: boolean;
+  growthDelta: boolean;
+  labels: boolean;
+  sourceBadges: boolean;
+  quickActions: boolean;
+  description: boolean;
+  links: boolean;
+}
+
+export interface FeedViewSettings {
+  mode: ViewMode;
+  gridColumns: 1 | 2 | 3 | 4 | 5;
+  desktopGridColumns?: 6 | 7 | 8;
+  gridDensity: GridDensity;
+  listCoverSize: ListCoverSize;
+  listDensity: ListDensity;
+  metricSlots: MetricId[];
+  metricSlotsWhenHidden?: MetricId[];
+  visible: VisibleTitleFields;
+}
+
+export type FeedKind = "logic" | "custom";
+export type FeedLibraryKind = FeedKind;
+export type CustomFeedOrderMode = "manual" | "automatic";
+export type CustomFeedPlacement = "top" | "bottom";
+
+export interface Feed {
+  id: string;
+  kind: FeedKind;
+  name: string;
+  description: string;
+  showDescription: boolean;
+  createdAt: string;
+  updatedAt: string;
+  filters: FeedFilters;
+  sort: SortRule[];
+  view: FeedViewSettings;
+  coverTitleIds: number[];
+  titleIds: number[];
+  orderMode: CustomFeedOrderMode;
+  newTitlePlacement: CustomFeedPlacement;
+  nonAniListPlacement: CustomFeedPlacement;
+}
+
+export interface FeedSegment {
+  id: string;
+  library: FeedLibraryKind;
+  name: string;
+  feedIds: string[];
+  collapsed: boolean;
+  hiddenFromHome: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  kind: "manual" | "smart";
+  titleIds: number[];
+  feedId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecommendationShelf {
+  id: string;
+  name: string;
+  statusMode: "any" | "completed" | "ongoing";
+  dateMode: "any" | "latest";
+  sourceModes: SourceMode[];
+  sort: SortRule[];
+  metricRanges: MetricRange[];
+}
+
+export interface LabelRule {
+  minMeanScore?: number | null;
+  minPopularity?: number | null;
+  minFavourites?: number | null;
+  includeTagIds?: number[];
+}
+
+export interface UserLabel {
+  id: string;
+  name: string;
+  color: string;
+  manualTitleIds: number[];
+  rule?: LabelRule | null;
+}
+
+export interface DetailVisibleFields {
+  cover: boolean;
+  title: boolean;
+  description: boolean;
+  genreTags: boolean;
+  allTags: boolean;
+  authorsArtists: boolean;
+  links: boolean;
+  labels: boolean;
+  popularity: boolean;
+  favourites: boolean;
+  meanScore: boolean;
+  fanFavouriteRatio: boolean;
+  discoveryMetrics: boolean;
+  growthNumbers: boolean;
+  status: boolean;
+  year: boolean;
+  chapters: boolean;
+  contentRating: boolean;
+}
+
+export interface AppSettings {
+  appName: string;
+  themeMode: ThemeMode;
+  accentColor: string;
+  dataSourceUrl: string;
+  adultUnlocked: boolean;
+  contentRatings: ContentRating[];
+  defaultFeedView: FeedViewSettings;
+  recommendationShelves: RecommendationShelf[];
+  detailVisible: DetailVisibleFields;
+  detailCoverLayout: "left" | "right" | "center" | "background" | "minimal";
+  metricNames: Record<string, string>;
+  bottomNavItems: string[];
+  controlPlacement: ControlPlacement;
+  restoreLastSession: boolean;
+  nonAniListPlacement: NonAniListPlacement;
+  sharingDefault: "feed" | "folder" | "settings" | "full";
+  sfwShareDefault: boolean;
+  includeAppNameInShare: boolean;
+  searchSensitiveTags: boolean;
+  searchRelationshipTags: boolean;
+  searchAdultTags: boolean;
+}
+
+export interface SyncMeta {
+  lastSync: string | null;
+  totalSeries: number;
+  historyFirstDate: string | null;
+  historyLastDate: string | null;
+  versionHash: string | null;
+  catalogNormalizationVersion?: number;
+  fileSizes?: Record<string, number>;
+  source: string;
+}
+
+export interface AppStateSnapshot {
+  feeds: Feed[];
+  feedSegments?: FeedSegment[];
+  feedLibraryOrder?: FeedLibraryKind[];
+  folders?: Folder[];
+  labels?: UserLabel[];
+  settings: AppSettings;
+  activeFeedId: string | null;
+  lastRoute: string;
+}
+
+export interface QueryResult {
+  items: SeriesCatalog[];
+  limitedHistory: boolean;
+  missingDateData: boolean;
+  activeNotes: string[];
+}
